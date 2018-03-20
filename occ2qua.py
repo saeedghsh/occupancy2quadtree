@@ -4,17 +4,9 @@ import numpy as np
 
 import time
 
-########## load image - extract occupancy
-filename = 'test_images/test.png' # '/home/saesha/Documents/tango/E5_13/20170409130542.png'
-img = np.flipud( cv2.imread( filename, cv2.IMREAD_GRAYSCALE) )
-
-# do I need them as points?
-# I mean, I could just slice the image to see if each node is empty or not.
-# That's also better, if I were to extend to multi-color!
-Y, X = np.where(img==0)
-
-
-########################################
+################################################################################
+################################################################################
+################################################################################
 class Node:
     def __init__(self, idx, rmin,rmax, cmin,cmax,
                  image, depth_max=10, resolution=10):
@@ -39,13 +31,15 @@ class Node:
 
     # def __call__(self, image): print('call function')
 
+    ########################################
     def is_point_inside(self,r,c):
         return self.idx if (rmin<r<rmax and cmin<c<cmax) else False
 
+    ########################################
     def get_boundary_lines(self,):
         pass
 
-########################################
+################################################################################
 class QuadTree:
     def __init__(self, image,
                  depth_max=10, resolution=10,
@@ -62,7 +56,7 @@ class QuadTree:
         self.node = Node('0', 0,h , 0,w, self.img_bin, depth_max, resolution)
 
   
-
+################################################################################
 def extract_end_node (node):
     '''
     '''
@@ -76,7 +70,7 @@ def extract_end_node (node):
 
     return end_nodes
     
-
+################################################################################
 def bounds2lines (bounds):
     '''
     takes the boundary of a rectangle in column-row coordinates
@@ -89,53 +83,55 @@ def bounds2lines (bounds):
             ((cmax, rmin), (cmax, rmax)))
 
 
+
+################################################################################
+################################################################################
+################################################################################
+'''
+If I use the points, it will be extendable to pointset
+# Y, X = np.where(img==0)
+
+
+If I use the image value, it will be extendable to multi-color image
+'''
+
+########## load image - extract occupancy
+filename = 'test_images/test.png'
+img = np.flipud( cv2.imread( filename, cv2.IMREAD_GRAYSCALE) )
+
+
 tic = time.time()
-# qt = QuadTree(img, depth_max=10, resolution=10)
 qt = QuadTree(img, depth_max=6, resolution=1)
+# qt = QuadTree(img, depth_max=10, resolution=10)
 # qt = QuadTree(img, depth_max=9, resolution=1)
 print('time to complete: {:.5f}'.format(time.time()-tic))
 # lines = [bounds2lines(en.bounds) for en in extract_end_node(qt.node)]
 # print('number of end nodes: {:d}'.format(len(lines)))
 
+# since I just want the lines for plotting, use set to remove duplicates
 lines = list(set([l for en in extract_end_node(qt.node) for l in bounds2lines(en.bounds)]))
 print('number of end nodes: {:d}'.format(len(lines)))
 
-# ### for animation
-# for d in range(10):
-#     qt = QuadTree(img, depth_max=d, resolution=1)
-#     lines = list(set([l for en in extract_end_node(qt.node)
-#                       for l in bounds2lines(en.bounds)]))
-#     img_cv = np.stack([img for _ in range(3)], axis=2)
-#     for l in lines: cv2.line(img_cv, l[0], l[1], (0,0,255), 1)
-#     cv2.imwrite('qt_depth0{:d}.png'.format(d), np.flipud(img_cv))
-# # convert -delay 20 -loop 0 *.png quadtree.gif
-
-########## plottings
+################################################################################
+####################################################################### plotting
+################################################################################
 if 1:
     max_size = 12
     h, w = img.shape
     H,W = [max_size, (float(w)/h)*max_size] if (h > w) else [(float(h)/w)*max_size, max_size]
-       
-
     fig, axes = plt.subplots(1,1, figsize=(W, H))
 
-
     if 0:
+        # plot lines with matplotlib - vector quality for print
         axes.imshow(img, cmap='gray', alpha=1, interpolation='nearest', origin='lower')
-        # axes.imshow(img_bin, cmap='gray', alpha=1, interpolation='nearest', origin='lower')
-
-        for l in lines:
-            axes.plot( [l[0][0], l[1][0]], [l[0][1], l[1][1]], 'b-')
-
+        for l in lines: axes.plot( [l[0][0], l[1][0]], [l[0][1], l[1][1]], 'b-')
 
     else:
-        # img_cv = img.copy()
+        # plot lines with opencv - way faster
         img_cv = np.stack([img for _ in range(3)], axis=2)
-        for l in lines: cv2.line(img_cv, l[0], l[1], (0,0,255), 1)# 2, -1)
+        for l in lines: cv2.line(img_cv, l[0], l[1], (0,0,255), 1)
         axes.imshow(img_cv, alpha=1, interpolation='nearest', origin='lower')
-        # cv2.imwrite(target_folder+'pts/pts_motion0{:d}.png'.format(frame_counter), np.flipud(base_img)[450:-450, 550:-550] )
-        
-        
+                
     # axes.plot(X,Y, 'r,')
 
     axes.axis('off')
@@ -145,3 +141,14 @@ if 1:
 
 
 
+################################################################################
+################################################################### gif generate
+################################################################################
+# for d in range(10):
+#     qt = QuadTree(img, depth_max=d, resolution=1)
+#     lines = list(set([l for en in extract_end_node(qt.node)
+#                       for l in bounds2lines(en.bounds)]))
+#     img_cv = np.stack([img for _ in range(3)], axis=2)
+#     for l in lines: cv2.line(img_cv, l[0], l[1], (0,0,255), 1)
+#     cv2.imwrite('qt_depth0{:d}.png'.format(d), np.flipud(img_cv))
+# # convert -delay 20 -loop 0 *.png quadtree.gif
